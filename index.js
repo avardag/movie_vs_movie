@@ -14,24 +14,56 @@ const fetchData = async (url, searchterm) => {
   return response.data.Search;
 };
 
+const root = document.querySelector(".autocomplete");
+root.innerHTML = `
+    <div>
+    <label class="label"><b>Search for a movie</b></label>
+    <input class="search-input"/>
+    </div>
+    <div class="dropdown">
+      <div class="dropdown-menu">
+        <div class="dropdown-content results">
+        
+        </div>
+      </div>
+    </div>
+`;
+
 const searchInput = document.querySelector(".search-input");
+const dropdown = document.querySelector(".dropdown");
+const resultsWrapper = document.querySelector(".results");
 
 const onInput = async (event) => {
   const movies = await fetchData(url, event.target.value);
-  const targetDiv = document.querySelector("#target");
+  //clear previous search results before searching
+  resultsWrapper.innerHTML = "";
+
   if (movies.length === 0) {
-    targetDiv.innerHTML = `<p class="has-text-danger">Nothing found</p>`;
+    dropdown.classList.add("is-active");
+    resultsWrapper.innerHTML = `<p class="dropdown-item has-text-danger">Nothing found</p>`;
   } else {
-    targetDiv.innerHTML = "";
+    dropdown.classList.add("is-active");
+    resultsWrapper.innerHTML = "";
     for (let m of movies) {
-      const div = document.createElement("div");
-      div.innerHTML = `
-    <img src="${m.Poster ? m.Poster : null}" alt="">
-        <h1>${m.Title}</h1>
+      const option = document.createElement("a");
+      option.classList.add("dropdown-item");
+      option.innerHTML = `
+        <img src="${m.Poster === "N/A" ? "" : m.Poster}" alt="">
+        ${m.Title}
     `;
-      targetDiv.appendChild(div);
+      option.addEventListener("click", () => {
+        dropdown.classList.remove("is-active");
+        searchInput.value = m.Title;
+      });
+      resultsWrapper.appendChild(option);
     }
   }
 };
 
 searchInput.addEventListener("input", debounce(onInput, 500));
+
+document.addEventListener("click", (event) => {
+  if (!root.contains(event.target)) {
+    dropdown.classList.remove("is-active");
+  }
+});
