@@ -1,82 +1,59 @@
 const url = "http://www.omdbapi.com/";
 const apikey = "2305f86f";
 
-const fetchData = async (url, searchterm) => {
-  const response = await axios.get(url, {
-    params: {
-      apikey,
-      // s: "avengers",
-      s: searchterm,
-      // i: "tt0848228",
-    },
-  });
-  if (response.data.Error) return []; //if nothing found return empty arr
-  return response.data.Search;
-};
+const summaryLeft = document.querySelector(".left-summary");
+const summaryRight = document.querySelector(".right-summary");
+const autoCompleteLeft = document.querySelector("#left-autocomplete");
+const autoCompleteRight = document.querySelector("#right-autocomplete");
 
-const root = document.querySelector(".autocomplete");
-root.innerHTML = `
-    <div>
-    <label class="label"><b>Search for a movie</b></label>
-    <input class="search-input"/>
-    </div>
-    <div class="dropdown">
-      <div class="dropdown-menu">
-        <div class="dropdown-content results">
-        
-        </div>
-      </div>
-    </div>
-`;
-
-const searchInput = document.querySelector(".search-input");
-const dropdown = document.querySelector(".dropdown");
-const resultsWrapper = document.querySelector(".results");
-
-const onInput = async (event) => {
-  const movies = await fetchData(url, event.target.value);
-  //clear previous search results before searching
-  resultsWrapper.innerHTML = "";
-
-  if (movies.length === 0) {
-    dropdown.classList.add("is-active");
-    resultsWrapper.innerHTML = `<p class="dropdown-item has-text-danger">Nothing found</p>`;
-  } else {
-    dropdown.classList.add("is-active");
-    resultsWrapper.innerHTML = "";
-    for (let m of movies) {
-      const option = document.createElement("a");
-      option.classList.add("dropdown-item");
-      option.innerHTML = `
-        <img src="${m.Poster === "N/A" ? "" : m.Poster}" alt="">
-        ${m.Title}
+const autoCompleteConfig = {
+  renderOption(movie) {
+    return `
+        <img src="${movie.Poster === "N/A" ? "" : movie.Poster}" alt="">
+        ${movie.Title} (${movie.Year})
     `;
-      option.addEventListener("click", () => {
-        dropdown.classList.remove("is-active");
-        searchInput.value = m.Title;
-        onMovieSelect(m);
-      });
-      resultsWrapper.appendChild(option);
-    }
-  }
+  },
+
+  inputValue(movie) {
+    return movie.Title;
+  },
+  async fetchData(url, searchterm) {
+    const response = await axios.get(url, {
+      params: {
+        apikey,
+        s: searchterm,
+      },
+    });
+    if (response.data.Error) return []; //if nothing found return empty arr
+    return response.data.Search;
+  },
 };
 
-searchInput.addEventListener("input", debounce(onInput, 500));
-
-document.addEventListener("click", (event) => {
-  if (!root.contains(event.target)) {
-    dropdown.classList.remove("is-active");
-  }
+createAutoComplete({
+  root: autoCompleteLeft,
+  onOptionSelect(movie) {
+    document.querySelector(".tutorial").classList.add("is-hidden");
+    onMovieSelect(movie, summaryLeft);
+  },
+  ...autoCompleteConfig,
+});
+createAutoComplete({
+  root: autoCompleteRight,
+  onOptionSelect(movie) {
+    document.querySelector(".tutorial").classList.add("is-hidden");
+    onMovieSelect(movie, summaryRight);
+  },
+  ...autoCompleteConfig,
 });
 
-const onMovieSelect = async (movie) => {
+const onMovieSelect = async (movie, summaryElement) => {
   const response = await axios.get(url, {
     params: {
       apikey,
       i: movie.imdbID,
     },
   });
-  document.querySelector(".summary").innerHTML = renderMovie(response.data);
+  summaryElement.innerHTML = renderMovie(response.data);
 };
 
 const renderMovie = (movieDetails) => {
